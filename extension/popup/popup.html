@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreatShield Dashboard</title>
+  <link rel="stylesheet" href="popup.css">
+  <!-- Load Inter font for sleek typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header Section -->
+    <header class="header">
+      <div class="logo-area">
+        <div class="logo-shield"></div>
+        <span class="logo-text">THREAT<span class="highlight">SHIELD</span></span>
+      </div>
+      <div id="connection-badge" class="connection-status offline">
+        <span class="status-dot"></span>
+        <span id="connection-text" class="status-text">Connecting...</span>
+      </div>
+    </header>
+
+    <!-- Main Active Scanner Panel -->
+    <main class="scanner-panel">
+      <!-- Website Hostname Banner -->
+      <div class="site-card">
+        <span class="card-label">CURRENT HOSTNAME</span>
+        <div id="site-hostname" class="hostname-text">loading...</div>
+        <span id="scan-timestamp" class="timestamp-text">Last scanned: --:--:--</span>
+      </div>
+
+      <!-- Expanded Destination Banner (Hidden by default, shown if redirect occurs) -->
+      <div id="expanded-url-box" class="site-card" style="display: none; border-color: rgba(0, 240, 255, 0.2); margin-top: -6px;">
+        <span class="card-label" style="color: var(--color-cyan);">EXPANDED DESTINATION</span>
+        <div id="expanded-url" class="hostname-text" style="font-size: 11px; font-family: monospace;">loading...</div>
+      </div>
+
+      <!-- Threat Dial / Score Circle -->
+      <div class="score-display">
+        <div class="score-ring">
+          <svg class="progress-ring-svg" width="120" height="120">
+            <circle class="progress-ring-track" stroke="#131e33" stroke-width="8" fill="transparent" r="50" cx="60" cy="60"/>
+            <circle id="progress-bar" class="progress-ring-bar" stroke="#00f0ff" stroke-width="8" stroke-dasharray="314.16" stroke-dashoffset="314.16" fill="transparent" r="50" cx="60" cy="60"/>
+          </svg>
+          <div class="score-center">
+            <span id="risk-score" class="score-number">0</span>
+            <span class="score-total">/100</span>
+          </div>
+        </div>
+        <div class="verdict-label-box">
+          <span class="card-label">THREAT VERDICT</span>
+          <div id="threat-verdict" class="verdict-text verdict-safe">SCANNING</div>
+        </div>
+      </div>
+
+      <!-- Live Scan Details -->
+      <div class="details-card">
+        <div class="detail-row">
+          <span>Shield Protection:</span>
+          <span id="shield-status" class="status-active">ENABLED</span>
+        </div>
+        <div class="detail-row">
+          <span>Engine Response:</span>
+          <span id="engine-response">Checking...</span>
+        </div>
+        <div class="rules-box">
+          <span class="card-label">TRIGGERED RULES</span>
+          <ul id="triggered-rules-list" class="rules-list">
+            <li class="empty-rules">No vulnerabilities detected.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions">
+        <button id="rescan-btn" class="btn btn-primary">
+          <span class="btn-icon">🔄</span> Force Rescan Website
+        </button>
+      </div>
+    </main>
+
+    <!-- Recent Logs Feed -->
+    <section class="logs-panel">
+      <div class="section-header">
+        <span class="section-title">RECENT THREAT ALERTS (SQLITE)</span>
+      </div>
+      <div class="logs-container">
+        <ul id="recent-logs-list" class="logs-list">
+          <li class="log-loading">Retrieving central threat feed...</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>ThreatShield Engine v1.0.0</span>
+      <span>Secure Endpoint</span>
+    </footer>
+  </div>
+  
+  <script src="../utils/helpers.js"></script>
+  <script src="../services/api.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+ThreatShield Complete Setup Briefing (Phase 1 & 2)
+===================================================
+Date: 2026-05-27
+
+This file contains a detailed summary of all ThreatShield components implemented so far:
+
+---
+PHASE 1: FastAPI Backend & SQLite Core
+---
+1. Directory and Environment Setup:
+   - Configured ".env" containing configuration parameters for JWT security, database paths, and CORS allowed hosts.
+   - Built settings manager ("config/settings.py") utilizing Pydantic BaseSettings to read and validate environment variables.
+   - Created "requirements.txt" containing primary dependencies: fastapi, uvicorn, sqlalchemy, pydantic, pyjwt, and bcrypt.
+
+2. Database Connection and Schema:
+   - Established "database/connection.py" to initialize the SQLAlchemy engine. Configured SQLite thread parameters ("check_same_thread=False") to safely support concurrent API requests.
+   - Created "database/models.py" defining SQLAlchemy database mappings for:
+     * "ThreatAlert" (logs threat IP, target resource, type, severity score, and sanitized payload preview).
+     * "IPBlacklist" (holds IP rules for manual blocklists).
+
+3. Threat Scanning & Rules Service:
+   - Implemented "services/threat_analyzer.py" executing:
+     * SQL Injection (SQLi) signature checks.
+     * Cross-Site Scripting (XSS) signature checks.
+     * Command Injection (CMDi) & Directory Traversal checks.
+     * Shannon Entropy calculation (to catch obfuscated, packed, or base64 encoded scripts).
+     * Bogon/Private IP validations.
+     * Database blacklist lookup.
+
+4. Utility Layer:
+   - Formulated "utils/security.py" carrying Shannon Entropy calculations, RFC 1918 private/bogon IP validations, and log formatting helpers protecting against Log Injection vulnerabilities (CWE-117).
+
+5. Router Definitions:
+   - Created "routes/health.py" validating server liveness and querying SQLite database connectivity response times.
+   - Created "routes/threats.py" providing REST endpoints:
+     * "POST /scan" (runs payload analyzer against client requests).
+     * "GET /alerts" & "PUT /alerts/{id}/resolve" (manages threat incident reports).
+     * "POST /blacklist", "GET /blacklist", & "DELETE /blacklist/{ip}" (manages active IP bans).
+
+6. Main Application Hub:
+   - Structured "app.py" starting the FastAPI server, mounting routers, configuring CORS middleware, binding global Exception interceptors, and adding security response headers (HSTS, CSP, X-Frame-Options: DENY, Referrer-Policy).
+   - Injected database schema creation triggers on startup to ensure zero-setup database deployment.
+
+---
+PHASE 2: Chrome Extension Foundation & Integration
+---
+7. Extension Configuration (Manifest V3):
+   - Created "manifest.json" utilizing Manifest Version 3. Declared permissions for tabs, webNavigation, storage, activeTab, and host permission patterns (*://*/*). Locked down Content Security Policy (CSP).
+
+8. Background Service Worker:
+   - Implemented "background/background.js" to intercept page loading hooks (webNavigation.onCompleted and tabs.onUpdated). Extracts domain parameters, triggers scans via the API client, manages deduplication, caches status in chrome.storage.local, and messages the content script if alert thresholds are hit.
+
+9. DOM-isolated Content Script:
+   - Written "content/content.js" listening for threat events. Dynamically constructs and slides in warning banners (SAFE, SUSPICIOUS, DANGEROUS states). Mitigates DOM-based XSS (CWE-79) by avoiding innerHTML and injecting values exclusively through textContent.
+
+10. Glassmorphism Popup Interface:
+    - Coded "popup/popup.html", "popup.js", and "popup.css" providing a modern, cyber-themed glass dashboard. Displays connection status alerts, site scanning progress, risk dials, triggered security rules, and queries the backend SQLite alerts table to display recent security incidents.
+
+11. Outbound API Client & Assets:
+    - Created "services/api.js" defining backend connections. Injects AbortControllers for 5-second timeouts, supports automatic exponential backoff retries, and lists fetch triggers for scans and health checks.
+    - Programmatically drew shield PNG icons (16px, 48px, 128px) inside "assets/" to complete the extension package requirements.
+
+12. Verification & Validation Steps:
+    - Set up a dedicated Python virtual environment ("venv") in the backend.
+    - Installed required libraries from "requirements.txt" and installed the Pillow drawing library to render icons.
+    - Compiled all FastAPI module endpoints ("python -m py_compile app.py"), resolving successfully with exit code 0.
+    - Wrote full user documentation guides ("backend/README.md" and "extension/README.md") for end-to-end installation and threat signature verification.
+
+---
+PHASE 3: Advanced Phishing & Malicious URL Intelligence Engine
+---
+13. Homograph Attack Detection Service ("services/homograph_detector.py"):
+    - Converts hostnames using IDNA codecs and checks for Punycode indicators (prefixes starting with "xn--").
+    - Parses individual characters to map script mixing (e.g. Cyrillic and Latin looks-likes like "аррӏе.com").
+    - Contributes weighted scores and descriptive explanations for identified script violations.
+
+14. Suspicious TLD & URL Heuristics Analysis ("services/url_heuristics.py"):
+    - Implemented a structural parser scoring subdomain counts (nesting depth), hyphen frequency, raw IP routings, and excessive URL encoding (% abuse).
+    - Matches word boundaries against generic phishing keywords (login, bank, wells fargo, portal) and open redirect parameters (goto=, redirect=).
+    - Checks domains against suspicious TLD registries commonly abused in spam campaigns (.xyz, .top, .tk).
+
+15. Redirect Chain Analysis & Expansion Service ("services/redirect_analyzer.py"):
+    - Traverses network redirects (up to 5 hops max) via secure HTTP HEAD queries with 2.0s timeouts.
+    - SSRF mitigation: Resolves target hop domains and flags local, private, or loopback IPs (preventing internal networks bypass).
+    - Expands common URL shortener hosts (bit.ly, tinyurl, cutt.ly) to reveal their final destination.
+
+16. Central Scoring Refactoring ("services/threat_analyzer.py"):
+    - Refactored the scan entrypoint to orchestrate redirects, homograph checks, heuristics, and regex signatures.
+    - Compiles a unified risk score (0-100) and maps targets to upgraded severity tiers: SAFE, LOW RISK, SUSPICIOUS, HIGH RISK, and DANGEROUS.
+
+17. Extended SQLite Persistence:
+    - Added columns to "ThreatAlert" database model: expanded_url, redirect_chain, heuristic_matches, homograph_findings, and tld_match.
+    - Registered Pydantic support in ThreatAlertResponse and ThreatAlertCreate schemas.
+
+18. Frontend Popup Dashboard Enhancements:
+    - Updated HTML layout to show the "Expanded URL" block.
+    - Updated JS hooks to display the final redirect target, list rich explanations from the backend, and handle CSS class names for multi-word severity ratings.
+
