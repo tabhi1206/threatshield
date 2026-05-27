@@ -3,6 +3,7 @@ import SummaryCards from '../components/SummaryCards';
 import ThreatCharts from '../components/ThreatCharts';
 import IncidentsTable from '../components/IncidentsTable';
 import BackendStatus from '../components/BackendStatus';
+import ManualThreatScan from '../components/ManualThreatScan';
 import { getBackendHealth, getRecentIncidents, getSeverityDist, getSummary, getTrends } from '../services/api';
 import '../styles/global.css';
 
@@ -55,6 +56,7 @@ function DashboardPage() {
       <BackendStatus status={backendStatus} />
       <h1 style={{ fontWeight: 700, fontSize: '2.2rem', marginBottom: 8 }}>ThreatShield Analytics Dashboard</h1>
       <SummaryCards summary={summary} loading={loading} />
+      <ManualThreatScan />
       <ThreatCharts trends={trends} severityDist={severityDist} loading={loading} />
       <IncidentsTable incidents={incidents} loading={loading} />
     </div>

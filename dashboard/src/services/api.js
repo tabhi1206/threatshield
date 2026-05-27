@@ -6,8 +6,7 @@ const ENV_API_BASE =
 
 const API_BASE_CANDIDATES = [
   ENV_API_BASE,
-  'http://localhost:8000/api/v1',
-  'http://127.0.0.1:8000/api/v1',
+  'https://threatshield-jinq.onrender.com/api/v1',
 ].filter(Boolean);
 
 let resolvedApiBase = null;
@@ -18,8 +17,17 @@ function buildUrl(base, endpoint) {
   return `${normalizedBase}${normalizedEndpoint}`;
 }
 
-async function fetchFromBase(base, endpoint) {
-  const res = await fetch(buildUrl(base, endpoint));
+async function fetchFromBase(base, endpoint, options = {}) {
+  const headers = {
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(options.headers || {}),
+  };
+
+  const res = await fetch(buildUrl(base, endpoint), {
+    ...options,
+    headers,
+  });
+
   if (!res.ok) {
     throw new Error(`API error: ${res.status}`);
   }
@@ -27,15 +35,15 @@ async function fetchFromBase(base, endpoint) {
 }
 
 // Helper to fetch and handle errors
-async function fetchAPI(endpoint) {
+async function fetchAPI(endpoint, options = {}) {
   if (resolvedApiBase) {
-    return fetchFromBase(resolvedApiBase, endpoint);
+    return fetchFromBase(resolvedApiBase, endpoint, options);
   }
 
   let lastError = null;
   for (const base of API_BASE_CANDIDATES) {
     try {
-      const data = await fetchFromBase(base, endpoint);
+      const data = await fetchFromBase(base, endpoint, options);
       resolvedApiBase = base;
       return data;
     } catch (error) {
@@ -51,3 +59,11 @@ export const getTrends = () => fetchAPI('/analytics/trends');
 export const getSeverityDist = () => fetchAPI('/analytics/severity-distribution');
 export const getRecentIncidents = () => fetchAPI('/analytics/recent');
 export const getBackendHealth = () => fetchAPI('/health');
+export const scanUrl = (url) => fetchAPI('/threats/scan', { 
+  method: 'POST', 
+  body: JSON.stringify({ 
+    source_ip: '127.0.0.1',
+    target_endpoint: '/dashboard/scan',
+    payload: url
+  })
+});
