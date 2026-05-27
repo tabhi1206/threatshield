@@ -1,0 +1,13 @@
+name: Deploy to Render (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger Render deploy (placeholder)
+        run: |
+          echo "This job is a placeholder. Configure Render API keys and calls to trigger deploys or rely on Render's GitHub integration."

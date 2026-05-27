@@ -134,6 +134,21 @@ Once the application is running, you can access the Interactive Swagger document
     "ip_address": "203.0.113.5",
     "reason": "Repeated brute force attempts"
   }
+
+## 🚢 Production & Deployment Notes
+
+1. Secrets & Environment
+  - Copy `.env.example` to `.env` and populate production values. Never commit `.env`.
+  - Use a strong `JWT_SECRET_KEY` and store it in your hosting provider's secret manager (Render/GCP/AWS).
+
+2. Docker
+  - A sample `Dockerfile` is included for building a production image. It uses `uvicorn` and respects the `PORT` environment variable.
+  - Build: `docker build -t threatshield-backend ./`.
+  - Run locally: `docker run -e PORT=8000 -p 8000:8000 threatshield-backend`.
+
+3. Database
+  - For production, switch `DATABASE_URL` to a managed Postgres instance and run migrations with Alembic (not included by default).
+
   ```
 
 ---

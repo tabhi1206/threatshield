@@ -1,0 +1,121 @@
+Phase 1 — Prepare & Harden Backend
+
+1) Inventory & Audit (complete)
+   - Confirmed runtimes: Python FastAPI (backend), Node/Vite + React (dashboard), Chrome Extension (MV3)
+   - Identified issues: default JWT secret in `.env`, SQLite in production, missing background script path in extension manifest, no Dockerfile, no CI/CD.
+
+2) Security & Configuration
+   - Rotate secrets: generate a strong `JWT_SECRET_KEY` and store in Render secrets.
+   - Move sensitive values out of repo; add `.env.example` and ensure `.env` is in `.gitignore`.
+   - Tighten CORS to allowed origins only; remove permissive regex in production.
+   - Harden CSP: replace permissive `default-src * 'unsafe-inline' 'unsafe-eval'` with minimal allowed sources.
+
+3) Replace/Prepare Production DB
+   - Replace SQLite with managed Postgres (Render Postgres) or other managed DB.
+   - Add SQLAlchemy DB URL support via `DATABASE_URL` env var (already present) and prepare Alembic for migrations.
+   - Export current data if needed and create migration scripts.
+
+4) Tests & Static Checks
+   - Add unit/integration tests for core services (threat analyzer, routes), and linting (flake8/ruff).
+   - Add `pytest` and CI test job skeleton.
+
+5) Local dev hygiene
+   - Add `requirements.txt` pinning (already present) and optionally `pyproject.toml` for reproducible installs.
+
+Phase 2 — Containerize & Deploy Backend and Dashboard (Render)
+
+1) Containerization (recommended)
+   - Create `Dockerfile` for backend using Python slim image and production start command.
+     Example start command: `gunicorn -k uvicorn.workers.UvicornWorker app:app --bind 0.0.0.0:$PORT --workers 2`
+   - Optional: create `Dockerfile` for dashboard (or use Render Static Site).
+
+2) Render setup — Backend
+   - Create a Git repo (if not already) and push code to GitHub.
+   - On Render, create a new Web Service (or Docker Service) pointing to the backend repo.
+   - Set build command (if not using Docker): `pip install -r backend/requirements.txt` and start command using `gunicorn` or `uvicorn` referencing `$PORT`.
+   - Add managed Postgres on Render and set `DATABASE_URL` secret in the service settings.
+   - Add required secrets: `JWT_SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, etc.
+   - Configure health check to `GET /api/v1/health`.
+   - Configure automatic deploys from the main branch and set up a PR preview service (optional).
+
+3) Render setup — Dashboard
+   - Use Render Static Site or Web Service:
+     - If Static Site: set repo path to `dashboard/`, Build command: `npm install && npm run build`, Publish directory: `dist`.
+     - If Web Service: containerize and use `serve` or a small Node server to serve the built files.
+   - Ensure dashboard calls backend via the public API URL (HTTPS). Update `dashboard/src/services/api.js` to use env-provided API base URL at build time.
+   - Set CORS allowed origin to the dashboard domain in Render's settings/environment.
+
+4) Domain, TLS, and monitoring
+   - Add custom domains in Render, enable TLS (automatic), configure DNS records.
+   - Add basic logging / health alerts (Render provides logs and metrics).
+
+Phase 3 — Package & Publish Chrome Extension
+
+1) Fix & Prepare Extension Code
+   - Fix missing background script referenced in `extension/manifest.json` (manifest points to `background/background.js` which is absent).
+   - Update extension to call the deployed backend domain (use HTTPS) and not `localhost`.
+   - Audit `content_security_policy` and ensure no inline script usage or unsafe-eval in extension pages.
+   - Build a production-ready popup (minify assets) and ensure all icons exist.
+
+2) Package & ZIP
+   - Create a `build-extension` script that copies `extension/` into a temporary folder, runs any bundling (if using ES modules), and zips the final directory.
+   - Validate `manifest.json` and test by loading the unpacked extension in Chrome (Developer mode) against the deployed API endpoints.
+
+3) Chrome Web Store Publishing
+   - Create Developer account on Chrome Web Store (one-time fee required).
+   - Prepare metadata: store listing description, privacy policy URL, screenshots (at least one 1280x800), and icons.
+   - Upload the ZIP to the developer dashboard and submit for review.
+   - Optionally automate publishing via Chrome Web Store API (generate OAuth tokens and configure CI job to upload on tag changes).
+
+4) Post-publish
+   - Monitor extension errors and user reports. Add a versioned changelog and update the dashboard/website.
+
+Cross-phase CI/CD and Ops
+
+1) CI/CD
+   - Create GitHub Actions workflows:
+     - `ci.yml`: run tests, lint, and build backend & frontend.
+     - `deploy-backend.yml`: on merge to `main`, build & push Docker image and/or trigger Render deploy.
+     - `deploy-dashboard.yml`: on merge, build static site and let Render auto-deploy.
+     - `publish-extension.yml` (optional): build and upload ZIP to Chrome Web Store when a release is created.
+
+2) Migrations & Backups
+   - Configure DB migrations (Alembic) and automated backups for the managed DB.
+
+3) Monitoring & Alerts
+   - Add Sentry (or similar) for error monitoring.
+   - Configure uptime checks on `/api/v1/health` and alert channels (email/Slack).
+
+Timeline & Order of Execution (suggested)
+
+Week 1:
+ - Phase 1 tasks: audit, rotate secrets, configure Postgres, add Alembic, add tests
+Week 2:
+ - Phase 2 tasks: create Dockerfiles, push to GitHub, configure Render services for backend + dashboard, test end-to-end
+Week 3:
+ - Phase 3 tasks: fix & build extension, prepare store listing, submit to Chrome Web Store
+
+Quick local test commands (examples):
+
+# Backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r backend/requirements.txt
+uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
+
+# Dashboard
+cd dashboard
+npm install
+npm run dev
+# Build
+npm run build
+
+# Extension (local load)
+# In Chrome -> Extensions -> Load unpacked -> select extension/ folder
+
+Notes & Security Reminders
+ - Never commit production secrets. Use Render secrets or GitHub Actions secrets for CI.
+ - Use managed Postgres in production; SQLite is not recommended for concurrent web services.
+ - Review privacy policy and data retention rules before publishing the extension.
+
+Contact me which phase you want me to start implementing first (I will begin Phase 1 hardening and create required files such as Dockerfile, Alembic config, and `.env.example` if you approve).

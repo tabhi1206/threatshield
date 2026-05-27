@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "jest"
+    "test": "jest",
+    "build:docker": "npm ci && npm run build"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

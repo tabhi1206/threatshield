@@ -15,9 +15,15 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Security configs
-    JWT_SECRET_KEY: str = "default_secret_key_threat_shield_change_me"
+    # In production this must be set via environment (no insecure defaults)
+    JWT_SECRET_KEY: str | None = None
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # Toggle debug behavior for development vs production
+    DEBUG: bool = False
+
+    # CSP directives for responses (override for stricter policies)
+    CSP_DIRECTIVES: str = "default-src 'self'"
     
     # CORS setup (comma-separated string parsed into list of origins)
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000"
@@ -47,3 +53,12 @@ class Settings(BaseSettings):
 
 # Instantiate the global settings object to be imported and used across the codebase
 settings = Settings()
+
+# Fail fast: require a secure JWT secret in production
+if not settings.DEBUG:
+    insecure_values = [None, "", "default_secret_key_threat_shield_change_me", "replace_this_with_a_strong_random_secret"]
+    if settings.JWT_SECRET_KEY in insecure_values:
+        raise RuntimeError(
+            "JWT_SECRET_KEY is not configured or uses an insecure default. "
+            "Set JWT_SECRET_KEY in environment variables or backend/.env before starting the service."
+        )

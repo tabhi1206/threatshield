@@ -37,9 +37,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    # Only allow origin regex in DEBUG/development to enable localhost variants
+    allow_origin_regex=(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$" if settings.DEBUG else None),
     allow_credentials=True,
-    allow_methods=["*"],  # Restrict to specific HTTP methods in higher-security environments
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -62,7 +63,8 @@ async def add_security_headers(request: Request, call_next):
     
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Content-Security-Policy"] = "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
+    # Use CSP directives from settings (keep conservative by default)
+    response.headers["Content-Security-Policy"] = settings.CSP_DIRECTIVES
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["X-XSS-Protection"] = "1; mode=block"
