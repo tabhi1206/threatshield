@@ -5,7 +5,7 @@
 
 // Configuration constants
 const BACKEND_CONFIG = {
-  BASE_URL: "http://localhost:8000",
+  BASE_URL: "https://threatshield-jinq.onrender.com",
   API_PREFIX: "/api/v1",
   TIMEOUT_MS: 5000,
   MAX_RETRIES: 2
